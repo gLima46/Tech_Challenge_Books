@@ -2,8 +2,6 @@ absl-py
 alembic
 annotated-types
 anyio
-argon-cffi
-argon-cffi-bindings
 arrow
 asttokens
 astunparse
@@ -45,14 +43,6 @@ fonttools
 fqdn
 future
 gast
-google-api-core
-google-api-python-client
-google-auth
-google-auth-httplib
-google-auth-oauthlib
-Google-Colab-Transfer
-google-pasta
-googleapis-common-protos
 greenlet
 grpcio
 h
@@ -208,8 +198,6 @@ absl-py
 alembic
 annotated-types
 anyio
-argon-cffi
-argon-cffi-bindings
 arrow
 asttokens
 astunparse
