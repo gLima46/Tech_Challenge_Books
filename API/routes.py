@@ -21,7 +21,6 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "../data_base/books.db")
 db = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 
 @router.get("/health")
-@token_required
 def health_check(request: Request):
     """
     Verifica o status da api e a conectividade com a base de dados.

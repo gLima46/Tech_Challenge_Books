@@ -9,5 +9,9 @@ app = FastAPI(
     version="1.0"
 )
 
+app.get("/")
+async def welcome():
+    return "Bom vindo a api de livros!"
+
 app.include_router(book_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
