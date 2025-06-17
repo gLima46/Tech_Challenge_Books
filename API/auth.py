@@ -1,15 +1,53 @@
-from fastapi import APIRouter, HTTPException, Request, Response, Cookie
+import os
+import sqlite3
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 from functools import wraps
 import jwt
 from datetime import datetime, timedelta
-import sqlite3
 import inspect
 
+# Configurações
 SECRET_KEY = "sua_chave_secreta_supersegura"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_SECONDS = 1800  # 30 minutos
 
+# Caminhos
+DB_DIR = os.path.join(os.path.dirname(__file__), "../data_base")
+DB_PATH = os.path.join(DB_DIR, "users.db")
+
+# Garante a existência do banco de dados e tabelas
+def init_db():
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tokens (
+        username TEXT,
+        token TEXT,
+        created_at DATETIME
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+    print(f"Banco de dados inicializado em: {DB_PATH}")
+
+# Inicializa o banco ao importar este módulo
+init_db()
+
+# FastAPI router
 router = APIRouter()
 
 # MODELS
@@ -33,18 +71,14 @@ def create_access_token(username: str):
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-    conn = sqlite3.connect("../data_base/users.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-
-    cursor.execute("CREATE TABLE IF NOT EXISTS tokens (username TEXT, token TEXT, created_at DATETIME)")
     cursor.execute("INSERT INTO tokens (username, token, created_at) VALUES (?, ?, ?)", 
                    (username, token, datetime.utcnow()))
     conn.commit()
     conn.close()
 
     return token
-
-import inspect
 
 def token_required(f):
     @wraps(f)
@@ -74,7 +108,7 @@ def token_required(f):
 # ROTAS
 @router.post("/register")
 def register(data: RegisterData):
-    conn = sqlite3.connect("../data_base/users.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     try:
         cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (data.username, data.password))
@@ -87,7 +121,7 @@ def register(data: RegisterData):
 
 @router.post("/login")
 def login(data: LoginData, response: Response):
-    conn = sqlite3.connect("../data_base/users.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT password FROM users WHERE username = ?", (data.username,))
     row = cursor.fetchone()
@@ -98,7 +132,6 @@ def login(data: LoginData, response: Response):
 
     token = create_access_token(data.username)
 
-    # Define o cookie HTTP
     response.set_cookie(
         key="access_token",
         value=token,
@@ -111,7 +144,6 @@ def login(data: LoginData, response: Response):
 
 @router.post("/logout")
 def logout(response: Response):
-    # Remove o cookie
     response.delete_cookie("access_token")
     return {"message": "Logout realizado com sucesso"}
 

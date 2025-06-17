@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query,Request, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 import os
@@ -186,15 +187,14 @@ def top_rated_books():
 
 ep = ExecutePreprocessor(timeout=800, kernel_name='python3')  # 15 minutos
 
-import subprocess
-
 @router.post("/run-extraction")
 @token_required
 def run_extraction(request: Request):
     """
-    Executa o script extract_books.py para extrair os dados dos livros.
+    Executa o script extract_books.py e retorna o CSV gerado como download.
     """
     script_path = os.path.join(os.path.dirname(__file__), "../extract_books/extract_books.py")
+    csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data_base/books.csv"))
 
     if not os.path.exists(script_path):
         raise HTTPException(status_code=404, detail="Script extract_books.py não encontrado.")
@@ -203,12 +203,19 @@ def run_extraction(request: Request):
         result = subprocess.run(["python", script_path], capture_output=True, text=True, timeout=800)
 
         if result.returncode != 0:
-            raise HTTPException(status_code=500, detail=f"Erro: {result.stderr}")
+            raise HTTPException(status_code=500, detail=f"Erro ao executar o script: {result.stderr}")
 
-        return {"status": "executado com sucesso", "output": result.stdout}
+        if not os.path.exists(csv_path):
+            raise HTTPException(status_code=404, detail="Arquivo CSV não foi gerado.")
+
+        return FileResponse(
+            path=csv_path,
+            filename="books.csv",
+            media_type="text/csv"
+        )
 
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=500, detail="Tempo limite de execução excedido (timeout).")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao executar o script: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
 
