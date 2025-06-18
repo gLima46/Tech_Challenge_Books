@@ -15,10 +15,13 @@ if sys.platform.startswith('win'):
 #para startar a api
 #uvicorn main:app --reload
 
-router = APIRouter()
+router = APIRouter(tags=["Core"])
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "../data_base/books.db")
 db = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
+
+DB_PATH_FEATURES = os.path.join(os.path.dirname(__file__), "../data_base/features_books.db")
+db_features = create_engine(f"sqlite:///{DB_PATH_FEATURES}", connect_args={"check_same_thread": False})
 
 @router.get("/health")
 def health_check(request: Request):

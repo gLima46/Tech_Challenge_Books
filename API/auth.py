@@ -48,7 +48,7 @@ def init_db():
 init_db()
 
 # FastAPI router
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 # MODELS
 class Token(BaseModel):
