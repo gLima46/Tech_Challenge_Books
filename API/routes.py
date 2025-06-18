@@ -75,7 +75,7 @@ def top_rated_books():
                 SELECT
                     id,
                     title,
-                    CONCAT(Simbolo_Moeda, ' ', price) AS price,
+                    Simbolo_Moeda || ' ' || price AS price,
                     availability,
                     rating,
                     category,
@@ -143,7 +143,7 @@ def stats_overview():
             result = conn.execute(text("""
                 SELECT 
                     COUNT(*) AS total_books,
-                    CONCAT(Simbolo_Moeda, ' ', ROUND(AVG(price), 2)) AS avg_price,
+                    Simbolo_Moeda || ' ' || ROUND(AVG(price), 2) AS avg_price,
                     SUM(CASE WHEN rating = 'One' THEN 1 ELSE 0 END) AS rating_One,
                     SUM(CASE WHEN rating = 'Two' THEN 1 ELSE 0 END) AS rating_Two,
                     SUM(CASE WHEN rating = 'Three' THEN 1 ELSE 0 END) AS rating_Three,
