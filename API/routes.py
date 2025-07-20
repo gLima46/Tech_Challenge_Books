@@ -1,32 +1,33 @@
-from fastapi import APIRouter, HTTPException, Query,Request, Depends
-from fastapi.responses import FileResponse
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import declarative_base, sessionmaker
 import os
-from auth import token_required
-from nbconvert.preprocessors import ExecutePreprocessor
-import asyncio
 import sys
+import asyncio
 import subprocess
 
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
+from fastapi.responses import FileResponse
+from sqlalchemy import create_engine, text
+from nbconvert.preprocessors import ExecutePreprocessor
+
+from auth import token_required
+
+# Ensure proper event loop for Windows
 if sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-#para startar a api
-#uvicorn main:app --reload
-
 router = APIRouter(tags=["Core"])
 
+# Database connections
 DB_PATH = os.path.join(os.path.dirname(__file__), "../data_base/books.db")
-db = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
-
 DB_PATH_FEATURES = os.path.join(os.path.dirname(__file__), "../data_base/features_books.db")
+
+db = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 db_features = create_engine(f"sqlite:///{DB_PATH_FEATURES}", connect_args={"check_same_thread": False})
+
 
 @router.get("/health")
 def health_check(request: Request):
     """
-    Verifica o status da api e a conectividade com a base de dados.
+    Check API and database connectivity.
     """
     try:
         with db.connect() as conn:
@@ -42,101 +43,100 @@ def health_check(request: Request):
 @router.get("/books")
 def list_books():
     """
-    Lista todos os livros disponíveis na base de dados.
+    List all books from the database.
     """
     with db.connect() as conn:
-            result = conn.execute(text("SELECT * FROM books")).mappings().fetchall()
-            return list(result)
+        result = conn.execute(text("SELECT * FROM books")).mappings().fetchall()
+        return list(result)
+
 
 @router.get("/books/search")
 def search_books(title: str = Query(None), category: str = Query(None)):
     """
-    Lista livros por título e/ou categoria.
+    Search books by title and/or category.
     """
     with db.connect() as conn:
         params = {}
+        query = "SELECT * FROM books"
         if title:
-            params["title"] = f"%{title}%"
             query = "SELECT * FROM books WHERE title LIKE :title"
+            params["title"] = f"%{title}%"
         if category:
-            params["category"] = f"%{category}%"
             query = "SELECT * FROM books WHERE category LIKE :category"
+            params["category"] = f"%{category}%"
         result = conn.execute(text(query), params).mappings().fetchall()
         return list(result)
+
 
 @router.get("/books/top-rated")
 def top_rated_books():
     """
-    Lista os livros com melhor avaliação.
+    List books with the highest ratings.
     """
     try:
         with db.connect() as conn:
             result = conn.execute(text("""
-                SELECT
-                    id,
-                    title,
-                    Simbolo_Moeda || ' ' || price AS price,
-                    availability,
-                    rating,
-                    category,
-                    image_url
-                FROM
-                    books
-                ORDER BY
+                SELECT 
+                    id, title, Simbolo_Moeda || ' ' || price AS price, 
+                    availability, rating, category, image_url
+                FROM books
+                ORDER BY 
                     CASE rating
                         WHEN 'One' THEN 1
                         WHEN 'Two' THEN 2
                         WHEN 'Three' THEN 3
                         WHEN 'Four' THEN 4
                         WHEN 'Five' THEN 5                   
-                    END
-                DESC;
+                    END DESC
             """)).mappings().fetchall()
         return list(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/books/price-range")
 def books_by_price_range(min: int = Query(0), max: int = Query(9999)):
     """
-    Filtra livros dentro de uma faixa de preço específica.
+    Filter books within a specific price range.
     """
     try:
         with db.connect() as conn:
             result = conn.execute(text("""
-                SELECT *
-                FROM books
+                SELECT * FROM books
                 WHERE price BETWEEN :min AND :max
             """), {"min": min, "max": max}).mappings().fetchall()
         return list(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/books/{book_id}")
 def get_book(book_id: int):
     """
-    Lista um livro específico de acordo com o id dele.
+    Get a specific book by ID.
     """
     with db.connect() as conn:
         result = conn.execute(text("SELECT * FROM books WHERE id = :id"), {"id": book_id}).fetchone()
         if result:
-            return list(result)
+            return dict(result)
         else:
             raise HTTPException(status_code=404, detail="Book not found")
+
 
 @router.get("/categories")
 def list_categories():
     """
-    Lista todas as categorias de livros.
+    List all available book categories.
     """
     with db.connect() as conn:
         result = conn.execute(text("SELECT DISTINCT category FROM books")).fetchall()
         return [row[0] for row in result if row[0]]
 
+
 @router.get("/stats/overview")
 def stats_overview():
     """
-    Lista estatísticas gerais da coleção (total de livros, preço médio, distribuição de ratings).
+    Return collection overview: total books, average price, rating distribution.
     """
     try:
         with db.connect() as conn:
@@ -149,17 +149,17 @@ def stats_overview():
                     SUM(CASE WHEN rating = 'Three' THEN 1 ELSE 0 END) AS rating_Three,
                     SUM(CASE WHEN rating = 'Four' THEN 1 ELSE 0 END) AS rating_Four,
                     SUM(CASE WHEN rating = 'Five' THEN 1 ELSE 0 END) AS rating_Five
-                FROM books;
-
+                FROM books
             """)).mappings().first()
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/stats/categories")
 def stats_by_category():
     """
-    Lista estatísticas detalhadas por categoria (quantidade de livros, preços por categoria). 
+    Return category-specific statistics (count and average price).
     """
     try:
         with db.connect() as conn:
@@ -175,41 +175,31 @@ def stats_by_category():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/books/top-rated")
-def top_rated_books():
-    try:
-        with db.connect() as conn:
-            result = conn.execute(text("""
-                SELECT id, title, author, rating
-                FROM books
-                ORDER BY rating DESC
-            """)).mappings().fetchall()
-        return list(result)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-ep = ExecutePreprocessor(timeout=800, kernel_name='python3')  # 15 minutos
+ep = ExecutePreprocessor(timeout=800, kernel_name='python3')
+
 
 @router.post("/run-extraction")
 @token_required
 def run_extraction(request: Request):
     """
-    Executa o script extract_books.py e retorna o CSV gerado como download.
+    Requires login token to execute.
+    Runs the extract_books.py script and returns the generated CSV as a download.
     """
-    script_path = os.path.join(os.path.dirname(__file__), "../extract_books/extract_books.py")
+    script_path = os.path.join(os.path.dirname(__file__), "../extract/extract_books.py")
     csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data_base/books.csv"))
 
     if not os.path.exists(script_path):
-        raise HTTPException(status_code=404, detail="Script extract_books.py não encontrado.")
+        raise HTTPException(status_code=404, detail="Script extract_books.py not found.")
 
     try:
         result = subprocess.run(["python", script_path], capture_output=True, text=True, timeout=800)
 
         if result.returncode != 0:
-            raise HTTPException(status_code=500, detail=f"Erro ao executar o script: {result.stderr}")
+            raise HTTPException(status_code=500, detail=f"Script execution error: {result.stderr}")
 
         if not os.path.exists(csv_path):
-            raise HTTPException(status_code=404, detail="Arquivo CSV não foi gerado.")
+            raise HTTPException(status_code=404, detail="CSV file was not generated.")
 
         return FileResponse(
             path=csv_path,
@@ -218,7 +208,6 @@ def run_extraction(request: Request):
         )
 
     except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=500, detail="Tempo limite de execução excedido (timeout).")
+        raise HTTPException(status_code=500, detail="Script execution timed out.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro inesperado: {str(e)}")
-
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")

@@ -1,18 +1,9 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import sqlite3
 import os
 import re
-
-
-# In[3]:
 
 
 def scrape_books(pages=50):
@@ -36,17 +27,13 @@ def scrape_books(pages=50):
             availability = book.find("p", class_="instock availability").text.strip()
             rating = book.p['class'][1]
 
-            # Link da página individual do livro
             book_url = "http://books.toscrape.com/catalogue/" + book.h3.a['href']
 
-            # Acessa a página de detalhes do livro
             book_res = requests.get(book_url)
             book_soup = BeautifulSoup(book_res.text, 'html.parser')
 
-            # Categoria: está na navegação breadcrumb
             category = book_soup.select("ul.breadcrumb li a")[-1].text.strip()
-
-            # Imagem: pega o link e ajusta para ser absoluto
+  
             image_relative_url = book_soup.find("div", class_="item active").img['src']
             image_url = "http://books.toscrape.com/" + image_relative_url.replace('../', '')
 

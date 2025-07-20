@@ -13,7 +13,7 @@ def criar_banco_formatado():
     if not os.path.exists(original_db_path):
         raise FileNotFoundError(f"Banco de dados original não encontrado em: {original_db_path}")
 
-    # Conecta ao banco original
+
     conn_original = sqlite3.connect(original_db_path)
     df = pd.read_sql_query("SELECT * FROM books", conn_original)
     conn_original.close()
@@ -21,21 +21,21 @@ def criar_banco_formatado():
     if df.empty:
         raise ValueError("O banco de dados original está vazio ou a tabela 'books' não existe.")
 
-    # Formatação dos dados conforme solicitado
+    
     df_formatado = pd.DataFrame()
-    df_formatado['id'] = df.index + 1  # ID sequencial
+    df_formatado['id'] = df.index + 1  
     df_formatado['title'] = df['title']
     df_formatado['price'] = df['price'].astype(float)
 
-    # Mapeamento de rating textual para numérico
+    
     rating_map = {'One': 1, 'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5}
     df_formatado['rating_numerical'] = df['rating'].map(rating_map)
 
-    # Gera one-hot encoding apenas para as categorias desejadas
+    
     dummies = pd.get_dummies(df['category'])
     df_formatado = pd.concat([df_formatado, dummies], axis=1)
 
-    # Salva no novo banco
+    
     conn_formatado = sqlite3.connect(formatted_db_path)
     df_formatado.to_sql('features_books', conn_formatado, index=False, if_exists='replace')
     conn_formatado.close()
