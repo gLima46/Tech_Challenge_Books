@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
+
 import pandas as pd
 import sqlite3
 import subprocess
@@ -9,7 +10,7 @@ import pickle
 import os
 import sys
 
-# Constants and Paths
+
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
@@ -21,28 +22,28 @@ FEATURES_DB_PATH = os.path.join(ROOT_DIR, "data_base", "features_books.db")
 TRAINING_DB_PATH = os.path.join(ROOT_DIR, "data_base", "training_data.db")
 TEST_DB_PATH = os.path.join(ROOT_DIR, "data_base", "teste_data.db")
 
-# Load model
+
 with open(MODEL_PATH, "rb") as f:
     model = pickle.load(f)
 model_df = model.history.copy()
 
-# Database engine
+
 db = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 
-# Import processing function
+
 from ml.data_processing import criar_banco_formatado
 
-# FastAPI Router
+
 router = APIRouter(prefix="/ml", tags=["ML"])
 
 
-# Input model
+
 class PurchaseRequest(BaseModel):
     book_name: str
     purchase_date: str  # Format: 'YYYY-MM-DD'
 
 
-# Utility function
+
 def save_to_db(df, db_path, table_name):
     """
     Save DataFrame to SQLite database, replacing the table if it exists.
@@ -65,7 +66,7 @@ def search_books(title: str):
         return []
 
 
-# Endpoints
+
 @router.get("/features")
 def get_ml_features():
     """
