@@ -6,10 +6,9 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 import sqlite3
 import subprocess
-import pickle
+import joblib
 import os
 import sys
-
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
@@ -23,16 +22,12 @@ TRAINING_DB_PATH = os.path.join(ROOT_DIR, "data_base", "training_data.db")
 TEST_DB_PATH = os.path.join(ROOT_DIR, "data_base", "teste_data.db")
 
 
-with open(MODEL_PATH, "rb") as f:
-    model = pickle.load(f)
+model = joblib.load(MODEL_PATH)
 model_df = model.history.copy()
-
 
 db = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 
-
 from ml.data_processing import criar_banco_formatado
-
 
 router = APIRouter(prefix="/ml", tags=["ML"])
 
