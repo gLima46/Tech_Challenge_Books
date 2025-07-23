@@ -77,7 +77,7 @@ def get_ml_features():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/training-data")
+@router.get("/training-data-books")
 def get_training_data():
     """
     Return training dataset and save to DB.
@@ -103,7 +103,7 @@ def get_training_data():
     return FileResponse(path="../data_base/training_data.csv", media_type='text/csv', filename="training_data.csv")
 
 
-@router.get("/test-data")
+@router.get("/test-data-books")
 def get_test_data():
     """
     Return test dataset and save to DB.
@@ -128,6 +128,17 @@ def get_test_data():
 
     return FileResponse(path="../data_base/test_data.csv", media_type='text/csv', filename="test_data.csv")
 
+@router.get("/training-data-exchange")
+def get_training_data():
+    """
+    Returns the training dataset for GBP to BRL exchange rate.
+    """
+    csv_path = "../data_base/training_price.csv"
+
+    if not os.path.exists(csv_path):
+        return Response(content="Arquivo CSV de treinamento não encontrado.", status_code=404)
+
+    return FileResponse(path=csv_path, media_type='text/csv', filename="training_price.csv")
 
 @router.post("/predictions")
 def predict_book_price(req: PurchaseRequest):
