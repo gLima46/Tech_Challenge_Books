@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from routes import router as book_router
 from auth import router as auth_router
 from ml_routes import router as ml_router

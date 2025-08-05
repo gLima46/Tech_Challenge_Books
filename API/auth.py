@@ -8,7 +8,6 @@ from functools import wraps
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
-# Constants
 SECRET_KEY = "your_super_secure_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_SECONDS = 1800
@@ -16,7 +15,6 @@ ACCESS_TOKEN_EXPIRE_SECONDS = 1800
 DB_DIR = os.path.join(os.path.dirname(__file__), "../data_base")
 DB_PATH = os.path.join(DB_DIR, "users.db")
 
-# Initialize DB
 def init_db():
     os.makedirs(DB_DIR, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
@@ -44,10 +42,10 @@ def init_db():
 
 init_db()
 
-# FastAPI Router
+
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-# Pydantic Models
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -60,7 +58,7 @@ class LoginData(BaseModel):
     username: str
     password: str
 
-# Token utilities
+
 def create_access_token(username: str) -> str:
     payload = {
         "username": username,
@@ -107,7 +105,7 @@ def token_required(f):
 
     return decorated
 
-# Routes
+
 @router.post("/register")
 def register(data: RegisterData):
     conn = sqlite3.connect(DB_PATH)

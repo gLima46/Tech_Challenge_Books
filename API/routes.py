@@ -3,20 +3,18 @@ import sys
 import asyncio
 import subprocess
 
-from fastapi import APIRouter, HTTPException, Query, Request, Depends
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from sqlalchemy import create_engine, text
 from nbconvert.preprocessors import ExecutePreprocessor
 
 from auth import token_required
 
-# Ensure proper event loop for Windows
 if sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 router = APIRouter(tags=["Core"])
 
-# Database connections
 DB_PATH = os.path.join(os.path.dirname(__file__), "../data_base/books.db")
 DB_PATH_FEATURES = os.path.join(os.path.dirname(__file__), "../data_base/features_books.db")
 
