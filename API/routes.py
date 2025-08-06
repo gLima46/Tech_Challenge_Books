@@ -114,7 +114,7 @@ def get_book(book_id: int):
     Get a specific book by ID.
     """
     with db.connect() as conn:
-        result = conn.execute(text("SELECT * FROM books WHERE id = :id"), {"id": book_id}).fetchone()
+        result = conn.execute(text("SELECT * FROM books WHERE id = :id"), {"id": book_id}).mappings().fetchone()
         if result:
             return dict(result)
         else:
